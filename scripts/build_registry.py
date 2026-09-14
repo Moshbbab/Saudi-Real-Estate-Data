@@ -108,14 +108,11 @@ CLASSIFICATION_RULES = [
     (r"KAPSARC-Construction-Cost-Index\.csv", "KAPSARC", "construction_cost_index"),
     (r"KAPSARC-Building-Permits\.csv", "KAPSARC", "building_permits"),
     # SAMA — Saudi Central Bank (money, banking, finance)
-    (r"SAMA-Table-12[def]\.csv", "SAMA", "money_banking"),
+    (r"SAMA-Table-12[ef]\.csv", "SAMA", "money_banking"),
     (r"SAMA-Table-2_[1347]\.csv", "SAMA", "finance_companies"),
     (r"SAMA-Table-4_[23]\.csv", "SAMA", "gov_credit_institutions"),
     (r"SAMA-Table-8_1\.csv", "SAMA", "price_indices"),
     (r"SAMA-Table-.*\.csv", "SAMA", "other"),  # fallback
-    # CMA — Capital Market Authority (investment funds, REITs, AUM)
-    (r"Table7-NumberOfPublicFunds-.*\.csv", "CMA", "public_funds_count"),
-    (r"Table20-PublicFundsAUM-.*\.csv", "CMA", "public_funds_aum"),
 ]
 
 # ── Arabic → canonical English mapping ───────────────────────────────
@@ -176,11 +173,48 @@ ARABIC_TO_CANONICAL = {
 }
 
 
-def classify_file(filename: str) -> tuple[str, str]:
-    """Return (source, category) for a CSV filename."""
+# ISS-227(a): dir-based source-attribution fallback. The source is carried by the
+# top-level data directory when the basename CLASSIFICATION_RULES fall through.
+# Longest / most-specific prefixes first (data/permits before a bare dir).
+_PATH_SOURCE_MAP = [
+    ("data/permits/", "PERMITS"),
+    ("gastat/", "GASTAT"),
+    ("kapsarc/", "KAPSARC"),
+    ("moj/", "MOJ"),
+    ("rega/", "REGA"),
+    ("sama/", "SAMA"),
+    ("cma/", "CMA"),
+]
+
+
+def _source_from_path(rel_path: str) -> str:
+    """Attribute a SOURCE from the file's top-level data directory (ISS-227a).
+
+    Returns UNKNOWN when no known data-dir prefix matches. Case-insensitive; matches
+    either at the path root or nested under it.
+    """
+    p = rel_path.replace(os.sep, "/").lower()
+    for prefix, source in _PATH_SOURCE_MAP:
+        if p.startswith(prefix) or ("/" + prefix) in p:
+            return source
+    return "UNKNOWN"
+
+
+def classify_file(filename: str, rel_path: str = None) -> tuple[str, str]:
+    """Return (source, category) for a CSV file.
+
+    Basename CLASSIFICATION_RULES are primary (they set both source AND category).
+    ISS-227(a): when they fall through to UNKNOWN, attribute the SOURCE from the
+    file's data directory (``rel_path``) as a fallback — category stays 'unknown'.
+    Classified files are never affected (the fallback only runs after a full miss).
+    """
     for pattern, source, category in CLASSIFICATION_RULES:
         if re.match(pattern, filename):
             return source, category
+    if rel_path:
+        path_source = _source_from_path(rel_path)
+        if path_source != "UNKNOWN":
+            return path_source, "unknown"
     return "UNKNOWN", "unknown"
 
 
@@ -457,7 +491,7 @@ def process_file(filepath: Path, conn: sqlite3.Connection):
     """Process a single CSV file and insert into registry."""
     filename = filepath.name
     rel_path = str(filepath.relative_to(BASE_DIR))
-    source, category = classify_file(filename)
+    source, category = classify_file(filename, rel_path)
     encoding, has_bom = detect_encoding(filepath)
     file_size = filepath.stat().st_size
 
@@ -471,9 +505,19 @@ def process_file(filepath: Path, conn: sqlite3.Connection):
         print(" (empty)")
         return
 
+    # Delimiter sniff (ISS-228): some sources ship non-comma CSVs — KAPSARC
+    # is ';'-delimited, which the default csv.reader(',') collapsed to a
+    # single column (col_count=1, 4 of 5 fields invisible in the catalog).
+    # Pick the delimiter with the most occurrences in the header line;
+    # default ',' when none appears.
+    _hdr = raw_lines[0] if raw_lines else ""
+    delimiter = max((",", ";", "\t"), key=_hdr.count)
+    if _hdr.count(delimiter) == 0:
+        delimiter = ","
+
     # Parse CSV
     with open_csv(filepath, encoding=encoding) as f:
-        reader = csv.reader(f)
+        reader = csv.reader(f, delimiter=delimiter)
         try:
             raw_headers = next(reader)
         except StopIteration:
@@ -849,6 +893,26 @@ def main():
     # These are the consumer-facing registry — `registry.db` is gitignored.
     print("\nExporting public artifacts...")
     export_public_artifacts(conn)
+
+    # Stamp build-provenance (ISS-250): record a content-hash of THIS builder so an
+    # audit can detect when registry.db was built with stale cataloguer code — the
+    # gap that let KAPSARC col_count=1 survive in the live catalog after the
+    # `;`-delimiter sniff fix (ISS-228). Written AFTER the public export so the
+    # internal `_build_meta` table never leaks into the consumer-facing CSVs.
+    try:
+        import sys as _sys
+
+        _root = str(Path(__file__).resolve().parent.parent)
+        if _root not in _sys.path:
+            _sys.path.insert(0, _root)
+        from canonical.build_provenance import stamp as _stamp_provenance
+
+        _sha = _stamp_provenance(
+            conn, [Path(__file__)], extra={"file_count": len(csvs)}
+        )
+        print(f"  build-provenance stamped (builder_sha={_sha[:12]})")
+    except Exception as e:  # never fail the build over a stamp
+        print(f"  (build-provenance stamp skipped: {e})")
 
     conn.close()
 

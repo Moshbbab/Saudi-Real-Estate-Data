@@ -45,22 +45,24 @@ This is an experiment in progress. I'm exploring what use cases, correlations, a
 
 | Source | Category | Files | Rows | Period | Description |
 |--------|----------|-------|------|--------|-------------|
-| **MOJ** | Sales transactions | 24 | 1,407,000 | 2020–2025 | Individual sale records: price, area, location, classification, reference number |
-| **MOJ** | RE operations (36 types) | 215 | 5,959,000 | 2023–2026 | Mortgages, seizures, transfers, POAs, enforcement, grants, compensation, deed updates, mergers, divisions, monthly aggregates |
+| **MOJ** | Sales transactions | 25 | 1,440,000 | 2020–2026 | Individual sale records: price, area, location, classification, reference number |
+| **MOJ** | RE operations (36 types) | 279 | 8,866,000 | 2023–2026 | Mortgages, seizures, transfers, POAs, enforcement, grants, compensation, deed updates, mergers, divisions, monthly aggregates |
 | **MOJ** | Market indices | 3 | 3,000 | 2018–2021 | Historical price indices by region, city, district |
-| **MOJ** | POA (non-RE) + regional quarterlies | 54 | 1,507,000 | 2024–2026 | Power-of-attorney datasets outside the real-estate taxonomy (courts, banks, traffic, civil status, commerce, foreign affairs, universities, boat/fishing licenses, annulled POAs) + REGA regional quarterly sales indicators + Makkah rental indicators. Staged under `moj/opportunistic/` pending reclassification. |
-| **REGA** | Sales indicators | 31 | 21,000 | 2024–2025 | Aggregate sales by region: avg/min/max price per m², deed counts |
-| **REGA** | Rental indicators | 13 | 20,000 | 2019–2024 | Rental market by city for all 13 administrative regions |
+| **MOJ** | POA (non-RE) + regional quarterlies | 64 | 1,551,000 | 2024–2026 | Power-of-attorney datasets outside the real-estate taxonomy (courts, banks, traffic, civil status, commerce, foreign affairs, universities, boat/fishing licenses, annulled POAs) + REGA regional quarterly sales indicators + Makkah rental indicators. Staged under `moj/opportunistic/` pending reclassification. |
+| **REGA** | Sales indicators | 34 | 21,100 | 2024–2025 | Aggregate sales by region: avg/min/max price per m², deed counts |
+| **REGA** | Rental indicators | 26 | 40,100 | 2019–2026 | Rental market by city for all 13 administrative regions |
 | **REGA** | Other | 2 | 32,700 | 2024–2025 | Gender registration stats, consolidated quarterly report |
 | **REGA** | Charts | 8 | — | 2024–2025 | Infographic visualizations |
 | **KAPSARC** | RE price indices | 4 | 2,867 | 2014–2024 | National + regional RE price index (2014=100 and 2023=100 base years) |
 | **KAPSARC** | Construction | 1 | 449 | 2014–2024 | Construction cost index by sector and section |
+| **KAPSARC** | Open Data Portal datasets | 11 | 31,300 | 1987–2026 | Housing conditions, household income & expenditure, construction cost series, REPI refreshes — `kapsarc/ods/` (Public Domain) |
+| **CMA** | Statistical bulletins + register | 131 | 9,300 | 2007–2026 | 7 CMA statistical bulletins, 2024 statistical appendix, institutions under CMA supervision — `cma/` |
 | **SAMA** | Finance & mortgage | 9 | 1,091 | 2009–2025 | Bank RE loans, new mortgages by type, finance company exposure, REDF lending, CPI housing |
-| | **Total** | **~360 CSVs** | **~9,488,000** | **2014–2026** | |
+| | **Total** | **~690 CSVs** | **~12,500,000** | **1987–2026** | |
 
 ### Key Numbers
 
-- **1.41 million** sale transactions across all 13 Saudi regions, 175 cities, 13,398 neighborhoods
+- **1.44 million** sale transactions (2020 – Q1 2026) across all 13 Saudi regions, 175 cities, 13,398 neighborhoods
 - **1,426.8 Billion SAR** (~$380B USD) total transaction value over 2020–2025
 - **85% residential**, 10.6% commercial, 4% agricultural, <0.1% industrial
 - **Riyadh** dominates: 34% of all transactions, 49% of total value

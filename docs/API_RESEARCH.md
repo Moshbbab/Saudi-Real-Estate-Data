@@ -149,16 +149,14 @@ Purpose: Identify APIs that can enrich **Ministry of Justice (MOJ; وزارة ا
 ### 1.7 MOJ — Real Estate Market Platform (SREM)
 
 - **URL:** https://srem.moj.gov.sa
-- **Authentication:** Nafath (National ID + Nafath app MFA) — citizen/resident login only
-- **Registration required:** Yes — Saudi ID or Iqama + Nafath app
+- **Authentication:** Split. A public, **unauthenticated** read API serves the market index + per-area aggregates + live deal stream. **Nafath** (National ID + Nafath app MFA) is required only for personal deeds, bulk per-transaction queries, and transactional services (purchase/mortgage/refund).
+- **Registration required:** Only for the Nafath-gated surface; the public read API needs nothing.
 - **What's available:**
-  - 4M+ property deeds database
-  - Transaction history: value, location, price/sqm, area, date
-  - All regions, all transaction types
-  - Real-time monitoring of live transactions
-- **API/bulk access:** None confirmed — portal is interactive only
-- **Cost:** Free (citizen service)
-- **Notes:** This is the most comprehensive transaction database, but it's behind Nafath authentication and has no public API. Our existing MOJ open data CSVs (4.96M rows in `this repository`) are the bulk-download version of this. Wathq's Real Estate Deeds API (section 1.2) provides programmatic deed lookup. For anything beyond that, direct MOJ data cooperation may be needed.
+  - **Public (no auth):** national market-price index daily series (`Dashboard/GetMarketIndexByDateCategory?dateCategory=A` → 1,006 daily points 2023-08-27→present, baseline 10000); current index (`Dashboard/GetMarketIndex`); per-area transaction aggregates (`Dashboard/GetAreaInfo`, POST, parameterized — body shape TBD); trending districts (`Dashboard/GetTrendingDistricts`); real-estate type lookup (`SremRealEstates/RealEstateTypes` → 20 types); anonymous deed inquiry by number/owner/identity; **live deal SignalR stream** at `wss://prod-srem-api-srem.moj.gov.sa/deals` (`withCredentials:false`).
+  - **Nafath-gated:** bulk per-transaction feed (`SremRealEstates/ShamilTransactions`, `FilteredRealEstates` → 401), user profile, orders.
+- **API/bulk access:** **Public REST API confirmed** (corrects the earlier "none confirmed"). Microservice bases: `prod-srem-api-srem.moj.gov.sa/api/v1` (Dashboard/* + `/deals`), `prod-inquiryservice-srem.moj.gov.sa/api/v1` (SremRealEstates/*, DeedInquiry/Anonymous*), `prod-srem-business-api-srem.moj.gov.sa/api/v1` (auth, transactional). The gov.sa portal's bot-filter blocks `curl`; Python urllib + Safari UA + `Referer: https://srem.moj.gov.sa/` passes.
+- **Cost:** Free.
+- **Notes (corrected 2026-05-29):** The earlier claim that SREM is *"Nafath-gated with no public API"* was **wrong**. SREM exposes a substantial public read API (see live map: `monitor/srem_mapper.py` → `monitor/srem_map/SREM_API_MAP.md`). Trigger: Naif AlQazlan's public dashboard (`maps.naif.one/realestate`) compiled 664,996 transactions Jan 2023–Apr 2026 from this surface. **Gap vs our holdings:** our MOJ open-data CSVs (~5.0M rows of deeds, quarterly, last downloaded 2026-02-11) remain the source for *raw per-transaction* data (still Nafath-gated on SREM). SREM's public surface *adds* what we lack: a **daily-updated national price index**, **live per-area aggregates** (fresher than quarterly), and a **real-time deal stream**. Wathq's Real Estate Deeds API (section 1.2) still covers programmatic single-deed lookup.
 
 ---
 

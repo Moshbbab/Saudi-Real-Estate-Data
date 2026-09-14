@@ -22,8 +22,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent.parent.resolve()
@@ -250,45 +252,61 @@ def check_registry_freshness(report: Report, skip: bool = False):
     # Snapshot current artifact hashes
     before = {a: file_md5(BASE_DIR / a) for a in REGISTRY_ARTIFACTS}
 
-    # Re-run build into a tempdir (so we don't clobber a clean state mid-check)
-    # Easier: run in place and snapshot after, then restore from `before` if needed.
-    # For simplicity here: just re-run and compare.
-    print("  (rebuilding registry to compare against committed artifacts…)")
+    # build_registry.py writes its output directly over the committed
+    # data/registry_* artifacts (in place). Snapshot the actual BYTES to a
+    # tempdir first so the working tree can be restored on every exit path
+    # (success, drift, timeout, build-failure) — this function only reports
+    # freshness, it must never leave the tree mutated.
+    snapshot_dir = tempfile.mkdtemp(prefix="validate_release_snapshot_")
     try:
-        result = subprocess.run(
-            [sys.executable, str(script)],
-            cwd=str(BASE_DIR),
-            capture_output=True,
-            text=True,
-            timeout=1800,
-        )
-    except subprocess.TimeoutExpired:
-        report.error(
-            "scripts/build_registry.py timed out (>30 min) — registry freshness UNKNOWN"
-        )
-        return
-    if result.returncode != 0:
-        report.error(
-            f"scripts/build_registry.py failed (exit {result.returncode}). Stderr tail:\n{result.stderr[-1000:]}"
-        )
-        return
+        for a in REGISTRY_ARTIFACTS:
+            dst = Path(snapshot_dir) / a.replace("/", "__")
+            shutil.copy2(BASE_DIR / a, dst)
 
-    drifted = []
-    for a in REGISTRY_ARTIFACTS:
-        after = file_md5(BASE_DIR / a)
-        if before[a] != after:
-            drifted.append(a)
+        print("  (rebuilding registry to compare against committed artifacts…)")
+        try:
+            result = subprocess.run(
+                [sys.executable, str(script)],
+                cwd=str(BASE_DIR),
+                capture_output=True,
+                text=True,
+                timeout=1800,
+            )
+        except subprocess.TimeoutExpired:
+            report.error(
+                "scripts/build_registry.py timed out (>30 min) — registry freshness UNKNOWN"
+            )
+            return
+        if result.returncode != 0:
+            report.error(
+                f"scripts/build_registry.py failed (exit {result.returncode}). Stderr tail:\n{result.stderr[-1000:]}"
+            )
+            return
 
-    if drifted:
-        report.error(
-            f"Registry artifacts are stale ({len(drifted)} drifted): "
-            + ", ".join(drifted)
-            + ". `git add data/registry_* data/registry.json data/schema.json && git commit`"
-        )
-    else:
-        report.note(
-            f"All {len(REGISTRY_ARTIFACTS)} registry artifacts match a fresh rebuild"
-        )
+        drifted = []
+        for a in REGISTRY_ARTIFACTS:
+            after = file_md5(BASE_DIR / a)
+            if before[a] != after:
+                drifted.append(a)
+
+        if drifted:
+            report.error(
+                f"Registry artifacts are stale ({len(drifted)} drifted): "
+                + ", ".join(drifted)
+                + ". `git add data/registry_* data/registry.json data/schema.json && git commit`"
+            )
+        else:
+            report.note(
+                f"All {len(REGISTRY_ARTIFACTS)} registry artifacts match a fresh rebuild"
+            )
+    finally:
+        # Restore the committed bytes regardless of outcome above — this is
+        # a validator, not a builder; it must never leave the tree mutated.
+        for a in REGISTRY_ARTIFACTS:
+            src = Path(snapshot_dir) / a.replace("/", "__")
+            if src.exists():
+                shutil.copy2(src, BASE_DIR / a)
+        shutil.rmtree(snapshot_dir, ignore_errors=True)
 
 
 def main():

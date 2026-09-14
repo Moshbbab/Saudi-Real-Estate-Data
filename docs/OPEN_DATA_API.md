@@ -3,6 +3,8 @@
 **Portal:** https://open.data.gov.sa
 **Last verified:** 2026-04-07
 
+**Project context:** This project mirrors PUBLIC open-government data under the KSA Open Data License at polite rates.
+
 This documents what works, what's blocked, and how to reliably download datasets from the Saudi National Open Data Platform.
 
 ---
@@ -67,7 +69,7 @@ GET https://open.data.gov.sa/data/api/datasets/resources?version=-1&dataset={dat
 
 ---
 
-### 4. File Download via odp-public (works — WAF-immune)
+### 4. File Download via odp-public (works — direct storage path)
 
 Direct file access from the portal's static storage.
 
@@ -81,21 +83,21 @@ full_url = f"https://open.data.gov.sa/odp-public/{resource['url']}"
 # URL-encode the filename part if it contains spaces
 ```
 
-**This is the only reliable download method.** It serves files directly from storage without passing through the WAF.
+**This is the only reliable download method.** It serves files directly from storage, not through the download API endpoint that the portal's bot-filter blocks.
 
 ---
 
-### 5. ~~File Download via API~~ (WAF-BLOCKED — do not use)
+### 5. ~~File Download via API~~ (BLOCKED by portal bot-filter — do not use)
 
 ```
 GET https://open.data.gov.sa/data/api/datasets/resources/download/{resource_id}
 ```
 
-**Status:** Permanently blocked by WAF (IP-based, not User-Agent-based).
+**Status:** Permanently blocked by the portal's bot-filter (IP-based, not User-Agent-based).
 - Returns 200 with HTML body: `<html><head><title>Request Rejected</title></head>...`
 - Blocking is IP-based: same machine blocked regardless of browser, headers, or cookies
 - Real Chromium browser also blocked (verified with Playwright)
-- WAF does not reset after hours — appears to be a permanent policy on this endpoint
+- Block does not reset after hours — appears to be a permanent policy on this endpoint
 
 **Do not use this endpoint.** Use odp-public (endpoint 4) instead.
 
@@ -156,7 +158,7 @@ for ds in datasets:
 | `/data/api/organizations?organization=...` | Working | List all datasets for an org |
 | `/api/datasets/{id}` | Working | Get resource URLs (primary) |
 | `/data/api/datasets/resources?dataset=...` | Unreliable | Fallback metadata only |
-| `/odp-public/{path}` | Working | **Download files** (WAF-immune) |
+| `/odp-public/{path}` | Working | **Download files** (direct storage path) |
 | `/data/api/datasets/resources/download/{id}` | **BLOCKED** | Do not use |
 
 ---

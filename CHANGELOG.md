@@ -12,6 +12,59 @@ Format: date-based versions. Each entry lists new data added, corrections, and d
 
 ---
 
+## 2026-09-14 — MOJ through July 2026 · REGA Q1-2026 rental · KAPSARC ODS datasets · CMA statistical bulletins
+
+### Data
+
+- **MOJ — 79 new files (2,984,000 rows):**
+  - `moj/real-estate/` — 64 files: the 2026 Q1 + Q2 real-estate
+    operation datasets (seizure / release, transfers, deed updates,
+    registrations, property identity, POA real-estate + white-land
+    fee, and the rest of the 36-type taxonomy). 2,907,145 rows; files
+    above 10 MB are gzip-compressed (`.csv.gz`).
+  - `moj/monthly/` — 10 files: POA issued / annulled monthly
+    aggregates March–July 2026 (44,298 rows).
+  - `moj/sales/MOJ-Sales-2026-Q1.csv` — 32,587 individual sale records,
+    the first 2026 quarter of the transaction series.
+  - `moj/sales/MOJ-RE-Index-*` — 4 additional city / district index
+    files (2018–2021 series).
+- **REGA — 16 new quarterly indicator files:**
+  - `rega/quarterlies/rental/` — the full **Q1 2026** rental set for
+    all 13 regions (20,146 district-level rows).
+  - `rega/quarterlies/sales/` — Eastern Province Q4 2025, Jazan Q1 and
+    Q2 2025 (previously missing from the series).
+- **KAPSARC — new `kapsarc/ods/` directory (11 datasets, ~31,300 rows,
+  Public Domain):** the KAPSARC Open Data Portal series behind the
+  existing `kapsarc/` indices, refreshed as of 2026-09-14 — real estate
+  price indices (2014 and 2023 bases, national + regional), construction
+  cost indices (by sector, by section, national series), household
+  environment statistics, household income & consumption expenditure
+  survey, housing electricity consumption by season/region, and the
+  1987–2019 municipal building-permit series (also in
+  `data/permits/csv/permits_historical.csv.gz`).
+- **CMA — new `cma/` collections (131 files, ~9,300 rows):** the seven
+  CMA statistical bulletins (securities offerings, equities, sukuk &
+  bonds, mutual funds incl. the REIT tier, CMIs, corporate governance,
+  fintech), the 2024 statistical appendix, and the register of
+  institutions under CMA supervision. CSV sheets as published by CMA
+  (bilingual headers), gzip-compressed. The two `cma/portal/` tables
+  are unchanged.
+
+### Corrections
+
+- Removed `gastat/REPI-2023-Q4.csv` — the file was mislabeled; its
+  content is a SWCC (water) series, not the GASTAT real-estate price
+  index. The REPI series continues in `gastat/REPI-2024-Q4.csv` … `REPI-2025-Q3.csv`.
+
+### Infrastructure
+
+- Registry artifacts (`data/registry_*.csv`, `registry.json`,
+  `schema.json`) rebuilt for the new files; `scripts/build_registry.py`
+  and `scripts/validate_release.py` updated (deterministic ordering,
+  `.jsonl` no longer accepted as a data format).
+- `docs/` — four reference docs refreshed (analysis ideas, API research,
+  open-data API notes, Saudi Open Data Portal guide).
+
 ## 2026-05-23 — REGA Q1-Q4 2025 quarterlies + CMA funds tier + SAMA Table 12d
 
 ### Data

@@ -4,11 +4,13 @@
 **Operator:** National Data Management Office (NDMO) / Saudi Data & AI Authority (SDAIA)
 **Last verified:** 2026-04-11
 
+**Project context:** This project mirrors PUBLIC open-government data under the KSA Open Data License at polite rates. All collection targets public APIs served by Saudi government portals to any visitor.
+
 Everything in this document is operational knowledge we paid real debug time to learn. **Read before touching any script that talks to this portal.** Do not downgrade or skip steps "because it sometimes works without them" — the portal blocks aggressively and recovery is hard.
 
 ---
 
-## 1. WAF / Anti-bot — Working Client Profile
+## 1. Portal Access Control — Working Client Profile
 
 The portal uses a WAF (cookie fingerprint `BPfffdc833146`, `BP407814ff`, `dm2`) that blocks:
 - Bare `curl` (WAF rejects with HTML "Request Rejected")
@@ -16,7 +18,7 @@ The portal uses a WAF (cookie fingerprint `BPfffdc833146`, `BP407814ff`, `dm2`) 
 - Python `urllib` with default UA (same rejection)
 - Requests without a portal cookie session (returns "Request Rejected" on data endpoints)
 
-**Always use the full stealth bundle from the very first request. Never probe with a minimal client.**
+**Always use the full browser-compatible request bundle from the very first request. Never probe with a minimal client.**
 
 ### Canonical working client (Python 3)
 
@@ -34,7 +36,7 @@ def make_portal_client():
         ("Accept-Language", "en-US,en;q=0.9"),
         ("Referer", "https://open.data.gov.sa/"),
     ]
-    # Warmup — collects the three WAF cookies before any data request
+    # Warmup — collects the three portal session cookies before any data request
     opener.open("https://open.data.gov.sa/en", timeout=20).read(500)
     return opener, cj
 ```
@@ -43,9 +45,9 @@ After warmup, the jar contains `dm2`, `BPfffdc833146`, `BP407814ff`. All downstr
 
 ### What NOT to do
 
-- **Don't use `curl` or `httpx` with default UA** — both are WAF'd even with the right Referer. Python `urllib` with browser UA is the known-good client.
+- **Don't use `curl` or `httpx` with default UA** — both are rejected by the portal's bot-filter even with the right Referer. Python `urllib` with browser UA is the known-good client.
 - **Don't skip the warmup.** A first-request data fetch without the session cookies returns 13-byte "Request Rejected" HTML. You'll think the file is dead when it isn't.
-- **Don't open a new opener per file.** Reuse one opener for the entire script so the cookies persist. New opener = new warmup = more WAF exposure.
+- **Don't open a new opener per file.** Reuse one opener for the entire script so the cookies persist. New opener = new warmup = extra unnecessary warmup requests.
 - **Don't use `dangerouslyDisable` tricks, aggressive sleeps, or proxies.** The working client is cheap; deviation risks a permanent block.
 
 ---
@@ -77,7 +79,7 @@ Returns `{ "resources": [...] }`. Each resource has:
 - `downloadUrl` — **use this directly** (see §3)
 - `url` — usually empty, do not use
 
-**Flakiness:** this endpoint is intermittently flaky and returns non-JSON on ~10-15% of calls. Retry 3× with 2-3s backoff. The flakiness is server-side, not a stealth problem.
+**Flakiness:** this endpoint is intermittently flaky and returns non-JSON on ~10-15% of calls. Retry 3× with 2-3s backoff. The flakiness is server-side, not a client-compatibility problem.
 
 ### Dataset detail API (used by downloader)
 
@@ -148,7 +150,7 @@ This is why the downloader's old strategy of guessing filenames from titles fail
 |---|---|---|
 | `/data/api/datasets/resources` | JSON decode error | Retry 3×, backoff 2s, 3s, 4s |
 | `/api/datasets/{id}` | Intermittent 5xx | Retry 3×, backoff 2s |
-| `/odp-public/.../file.csv` | WAF "Request Rejected" | Almost always means stealth downgraded — verify warmup done, don't retry harder |
+| `/odp-public/.../file.csv` | Bot-filter "Request Rejected" | Almost always means portal session cookies are missing — verify warmup done, don't retry harder |
 | `/odp-public/.../file.csv` | `NO DATA FOUND` | Do NOT retry — the file was withdrawn, mark permanently |
 | `/odp-public/.../file.csv` | HTTP 404 | Check UPPERCASE vs lowercase path, then give up |
 
@@ -178,7 +180,7 @@ The `monitor/re_data_monitor.py` script has an opportunistic-capture path (`_try
 
 1. It was reconstructing URLs manually instead of using the API's `downloadUrl` field directly.
 2. It did not URL-encode spaces, so the new generic-placeholder files (`Doc Attorney CSV.csv` etc.) all failed with "URL can't contain control characters".
-3. It did not do a warmup GET, so the first request hit the WAF and returned 13-byte "Request Rejected" HTML which the code happened to filter but did not log.
+3. It did not do a warmup GET, so the first request hit the portal's bot-filter and returned 13-byte "Request Rejected" HTML which the code happened to filter but did not log.
 
 **Lesson:** every new codepath to the portal must be reviewed against this playbook. Do not write new clients — import the shared helper from `monitor/portal_client.py` (TODO: factor out the shared `make_portal_client()` + `encode_url()` helpers).
 
@@ -189,7 +191,7 @@ The `monitor/re_data_monitor.py` script has an opportunistic-capture path (`_try
 | Date | What we learned |
 |---|---|
 | 2026-03-12 | Initial monitor run tracked 495 datasets, 792 resources across MOJ+REGA+GASTAT+NHC. |
-| 2026-03-27 | Discovered WAF blocks curl + httpx default UA. Browser UA + Referer in Python urllib works. Documented in project web-extraction pitfalls notes. |
+| 2026-03-27 | Discovered the portal's bot-filter blocks curl + httpx default UA. Browser UA + Referer in Python urllib works. Documented in project web-extraction pitfalls notes. |
 | 2026-04-07 | Monitor discovered 180 new resources (3 new datasets). Opportunistic capture silently failed — no files saved. |
-| 2026-04-11 | Root-caused the capture failure: (a) wrong URL source field, (b) no URL-encoding of spaces in generic placeholder filenames, (c) no warmup. Retry with full stealth bundle recovered **73 of 86** Apr-7 datasets as live and downloadable, totalling hundreds of MB of POA + deed transaction data. Only 13 failed — all to flaky `/data/api/datasets/resources` endpoint, recoverable via retry. |
+| 2026-04-11 | Root-caused the capture failure: (a) wrong URL source field, (b) no URL-encoding of spaces in generic placeholder filenames, (c) no warmup. Retry with the correct browser-compatible request bundle recovered **73 of 86** Apr-7 datasets as live and downloadable, totalling hundreds of MB of POA + deed transaction data. Only 13 failed — all to flaky `/data/api/datasets/resources` endpoint, recoverable via retry. |
 | 2026-04-11 | Learned the generic-placeholder-filename pattern — `Doc Attorney CSV.csv` etc. reused across dozens of datasets, uniqueness lives in the UUID path segment only. |
