@@ -16,7 +16,7 @@ Format: date-based versions. Each entry lists new data added, corrections, and d
 
 ### Data
 
-- **MOJ — 79 new files (2,984,000 rows):**
+- **MOJ — 75 new files (2,984,000 rows):**
   - `moj/real-estate/` — 64 files: the 2026 Q1 + Q2 real-estate
     operation datasets (seizure / release, transfers, deed updates,
     registrations, property identity, POA real-estate + white-land
@@ -26,8 +26,6 @@ Format: date-based versions. Each entry lists new data added, corrections, and d
     aggregates March–July 2026 (44,298 rows).
   - `moj/sales/MOJ-Sales-2026-Q1.csv` — 32,587 individual sale records,
     the first 2026 quarter of the transaction series.
-  - `moj/sales/MOJ-RE-Index-*` — 4 additional city / district index
-    files (2018–2021 series).
 - **REGA — 16 new quarterly indicator files:**
   - `rega/quarterlies/rental/` — the full **Q1 2026** rental set for
     all 13 regions (20,146 district-level rows).
@@ -42,7 +40,7 @@ Format: date-based versions. Each entry lists new data added, corrections, and d
   survey, housing electricity consumption by season/region, and the
   1987–2019 municipal building-permit series (also in
   `data/permits/csv/permits_historical.csv.gz`).
-- **CMA — new `cma/` collections (131 files, ~9,300 rows):** the seven
+- **CMA — new `cma/` collections (131 files, ~9,300 lines / ~4,600 data rows):** the seven
   CMA statistical bulletins (securities offerings, equities, sukuk &
   bonds, mutual funds incl. the REIT tier, CMIs, corporate governance,
   fintech), the 2024 statistical appendix, and the register of

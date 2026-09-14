@@ -1,9 +1,9 @@
 # Release Notes — v2026-09-14
 
 **Type:** Data refresh + two new source collections
-**Adds:** 79 MOJ files (Jan–Jul 2026), 16 REGA quarterlies (Q1 2026 rental), `kapsarc/ods/` (11 datasets), `cma/` (9 collections)
-**Files added:** 235 · **modified:** 12 · **removed:** 1
-**Rows added:** ~3.0 million (MOJ 2,984,030 · REGA 20,257 · KAPSARC 31,303 · CMA ~9,300)
+**Adds:** 75 MOJ files (Jan–Jul 2026), 16 REGA quarterlies (Q1 2026 rental), `kapsarc/ods/` (11 datasets), `cma/` (9 collections)
+**Files added:** 236 · **modified:** 14 · **removed:** 1
+**Rows added:** ~3.0 million (MOJ 2,984,030 · REGA 20,257 · KAPSARC 31,303 · CMA ~4,600 data rows)
 
 ## Summary
 
@@ -31,11 +31,11 @@ Two sources join the release for the first time as collections:
 |---|---:|---:|---|---|
 | `moj/real-estate/` | 64 | 2,907,145 | 2026 Q1–Q2 | large files gzip-compressed |
 | `moj/monthly/` | 10 | 44,298 | 2026-03 … 2026-07 | POA issued / annulled |
-| `moj/sales/` | 5 | 32,587 + index files | 2026 Q1; 2018–2021 index | sales + 4 city/district index files |
+| `moj/sales/` | 1 | 32,587 | 2026 Q1 | individual sale records |
 | `rega/quarterlies/rental/` | 13 | 20,146 | 2026 Q1 | all 13 regions |
 | `rega/quarterlies/sales/` | 3 | 111 | 2025 | EP Q4, Jazan Q1–Q2 |
 | `kapsarc/ods/` | 11 (+README) | 31,303 | 1987–2026 | Public Domain |
-| `cma/` | 131 (+README) | ~9,300 | 2007–2026 | 9 collections |
+| `cma/` | 131 (+README) | ~4,600 data rows | 2007–2026 | 9 collections |
 
 ### KAPSARC ODS datasets
 
@@ -59,7 +59,7 @@ kept here in its portal-native shape for reproducibility.
 
 ### CMA collections
 
-| Collection | CSV sheets | Rows |
+| Collection | CSV sheets | Lines (incl. bilingual headers) |
 |---|---:|---:|
 | bulletin-1-securities-offerings | 11 | 664 |
 | bulletin-2-equities | 20 | 2,603 |
